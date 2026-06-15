@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, MailOpen, Clock, Plus, ChevronLeft } from 'lucide-react';
 import { useBookStore } from '@/store/useBookStore';
@@ -24,9 +24,14 @@ export const MailboxPage: React.FC = () => {
   } = useBookStore();
 
   const [activeTab, setActiveTab] = useState<MailboxTabType>('delivered');
-  const [selectedLetter, setSelectedLetter] = useState<FutureLetter | null>(null);
+  const [selectedLetterId, setSelectedLetterId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<FutureLetter | null>(null);
+
+  const selectedLetter = useMemo(() => {
+    if (!selectedLetterId) return null;
+    return letters.find((l) => l.id === selectedLetterId) || null;
+  }, [selectedLetterId, letters]);
 
   useEffect(() => {
     checkAndUnlockLetters();
@@ -55,7 +60,7 @@ export const MailboxPage: React.FC = () => {
 
     if (letter.isPrivate && !isAdmin) return;
 
-    setSelectedLetter(letter);
+    setSelectedLetterId(letter.id);
     setShowDetail(true);
   };
 
@@ -198,7 +203,10 @@ export const MailboxPage: React.FC = () => {
       <LetterDetailModal
         letter={selectedLetter}
         isOpen={showDetail}
-        onClose={() => setShowDetail(false)}
+        onClose={() => {
+          setShowDetail(false);
+          setSelectedLetterId(null);
+        }}
         onMarkAsRead={(id) => markLetterAsRead(id)}
       />
 

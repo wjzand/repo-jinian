@@ -299,7 +299,16 @@ export const useBookStore = create<BookState>((set, get) => ({
     if (!currentBook) return;
 
     const updatedMoments = moments
-      .map((m) => (m.id === momentId ? { ...m, ...data } : m))
+      .map((m) => {
+        if (m.id === momentId) {
+          return {
+            ...m,
+            ...data,
+            photos: data.photos ? [...data.photos] : [...m.photos],
+          };
+        }
+        return { ...m };
+      })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     saveMoments(currentBook.id, updatedMoments);

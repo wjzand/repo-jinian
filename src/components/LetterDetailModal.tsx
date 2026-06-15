@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { FutureLetter } from '@/types';
 import { getMoodInfo, getLetterPresetInfo, getLetterStatusInfo } from '@/types';
 import { formatDateCN, formatDateTime } from '@/utils/date';
@@ -20,10 +20,16 @@ export const LetterDetailModal: React.FC<LetterDetailModalProps> = ({
 }) => {
   const [unlockStage, setUnlockStage] = useState<number>(0);
   const [showContent, setShowContent] = useState(false);
+  const onMarkAsReadRef = useRef(onMarkAsRead);
+  onMarkAsReadRef.current = onMarkAsRead;
+  const animatedLetterIdRef = useRef<string | null>(null);
+  const animationDoneRef = useRef(false);
 
   useEffect(() => {
     if (isOpen && letter) {
-      if (letter.status === 'unlocked') {
+      if (letter.status === 'unlocked' && animatedLetterIdRef.current !== letter.id) {
+        animatedLetterIdRef.current = letter.id;
+        animationDoneRef.current = false;
         setUnlockStage(0);
         setShowContent(false);
         
@@ -32,7 +38,8 @@ export const LetterDetailModal: React.FC<LetterDetailModalProps> = ({
         const timer3 = setTimeout(() => setUnlockStage(3), 1300);
         const timer4 = setTimeout(() => {
           setShowContent(true);
-          onMarkAsRead?.(letter.id);
+          animationDoneRef.current = true;
+          onMarkAsReadRef.current?.(letter.id);
         }, 1800);
 
         return () => {
@@ -41,12 +48,14 @@ export const LetterDetailModal: React.FC<LetterDetailModalProps> = ({
           clearTimeout(timer3);
           clearTimeout(timer4);
         };
-      } else if (letter.status === 'read') {
+      } else if (letter.status === 'read' || (letter.status === 'unlocked' && animationDoneRef.current)) {
+        animatedLetterIdRef.current = letter.id;
+        animationDoneRef.current = true;
         setShowContent(true);
         setUnlockStage(3);
       }
     }
-  }, [isOpen, letter, onMarkAsRead]);
+  }, [isOpen, letter]);
 
   if (!letter) return null;
 
@@ -55,6 +64,8 @@ export const LetterDetailModal: React.FC<LetterDetailModalProps> = ({
   const statusInfo = getLetterStatusInfo(letter.status);
 
   const handleClose = () => {
+    animatedLetterIdRef.current = null;
+    animationDoneRef.current = false;
     setUnlockStage(0);
     setShowContent(false);
     onClose();

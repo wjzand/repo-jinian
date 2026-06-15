@@ -32,12 +32,17 @@ export async function generateLongImage({
 
   const selectedMoments = moments.slice(0, 6);
 
+  const measureCanvas = document.createElement('canvas');
+  const measureCtx = measureCanvas.getContext('2d')!;
+  const momentHeights = selectedMoments.map((m) => calcMomentItemHeight(measureCtx, m));
+  const timelineTotalHeight = momentHeights.reduce((sum, h) => sum + h, 0) + (selectedMoments.length - 1) * 20;
+
   let totalHeight = 0;
   totalHeight += 320;
   totalHeight += 60;
   totalHeight += topMessages.length * 160 + 40;
   totalHeight += 60;
-  totalHeight += selectedMoments.length * 140 + 40;
+  totalHeight += timelineTotalHeight + 60;
   totalHeight += 180;
   totalHeight += 120;
 
@@ -256,32 +261,88 @@ function drawTimelineSection(
   let y = startY + 60;
 
   const lineX = PADDING + 30;
+  const itemHeights: number[] = [];
+  const nodeYPositions: number[] = [];
+
+  moments.forEach((moment) => {
+    const h = calcMomentItemHeight(ctx, moment);
+    itemHeights.push(h);
+    nodeYPositions.push(y + 20);
+    y += h + 20;
+  });
+
   ctx.strokeStyle = '#FFD9B8';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(lineX, y);
-  ctx.lineTo(lineX, y + moments.length * 130);
+  ctx.moveTo(lineX, nodeYPositions[0]);
+  ctx.lineTo(lineX, nodeYPositions[nodeYPositions.length - 1]);
   ctx.stroke();
 
+  y = startY + 60;
   moments.forEach((moment, index) => {
-    const momentY = y + index * 130;
-    drawMomentItem(ctx, moment, momentY, lineX);
+    const momentY = y;
+    drawMomentItem(ctx, moment, momentY, lineX, itemHeights[index]);
+    y += itemHeights[index] + 20;
   });
 
-  return y + moments.length * 130;
+  return y;
+}
+
+function calcMomentItemHeight(
+  ctx: CanvasRenderingContext2D,
+  moment: Moment
+): number {
+  const textWidth = CONTENT_WIDTH - 100;
+  ctx.font = 'bold 28px -apple-system, sans-serif';
+  const titleLines = countTextLines(ctx, `${moment.title}`, textWidth);
+  const titleHeight = titleLines * 32;
+  ctx.font = '22px -apple-system, sans-serif';
+  const descLines = countTextLines(ctx, moment.description, textWidth);
+  const descHeight = descLines * 30;
+  return Math.max(160, 12 + 22 + 10 + titleHeight + 10 + descHeight + 40);
+}
+
+function countTextLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): number {
+  let line = '';
+  let lineCount = 1;
+  for (let i = 0; i < text.length; i++) {
+    const testLine = line + text[i];
+    if (ctx.measureText(testLine).width > maxWidth && i > 0) {
+      line = text[i];
+      lineCount++;
+    } else {
+      line = testLine;
+    }
+  }
+  return lineCount;
 }
 
 function drawMomentItem(
   ctx: CanvasRenderingContext2D,
   moment: Moment,
   y: number,
-  lineX: number
+  lineX: number,
+  itemHeight: number
 ) {
   const typeInfo = MOMENT_TYPE_OPTIONS.find((t) => t.value === moment.type) || MOMENT_TYPE_OPTIONS[6];
 
   ctx.save();
+  drawRoundedRect(ctx, lineX + 30, y, CONTENT_WIDTH - 60, itemHeight, 16);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.06)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetY = 2;
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
   ctx.beginPath();
-  ctx.arc(lineX, y + 30, 12, 0, Math.PI * 2);
+  ctx.arc(lineX, y + 20, 12, 0, Math.PI * 2);
   ctx.fillStyle = '#FF8A5B';
   ctx.fill();
   ctx.strokeStyle = '#fff';
@@ -289,8 +350,8 @@ function drawMomentItem(
   ctx.stroke();
   ctx.restore();
 
-  const textX = lineX + 40;
-  const textWidth = CONTENT_WIDTH - 80;
+  const textX = lineX + 50;
+  const textWidth = CONTENT_WIDTH - 100;
 
   ctx.fillStyle = '#FF8A5B';
   ctx.font = '22px -apple-system, sans-serif';
@@ -298,13 +359,16 @@ function drawMomentItem(
   ctx.textBaseline = 'top';
   ctx.fillText(formatDateCN(moment.date), textX, y + 12);
 
+  const dateBottomY = y + 12 + 22;
+  const titleY = dateBottomY + 10;
   ctx.fillStyle = '#333';
   ctx.font = 'bold 28px -apple-system, sans-serif';
-  ctx.fillText(`${typeInfo.emoji} ${moment.title}`, textX, y + 48);
+  const titleBottomY = wrapText(ctx, `${typeInfo.emoji} ${moment.title}`, textX, titleY, textWidth, 32);
 
+  const descY = titleBottomY + 32 + 10;
   ctx.fillStyle = '#999';
   ctx.font = '22px -apple-system, sans-serif';
-  wrapText(ctx, moment.description, textX, y + 90, textWidth, 30);
+  wrapText(ctx, moment.description, textX, descY, textWidth, 30);
 }
 
 function drawFooter(
