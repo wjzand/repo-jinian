@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Users, MessageCircle, Calendar, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Settings, Users, MessageCircle, Calendar, ChevronRight, Mail } from 'lucide-react';
 import { Avatar } from '@/components/Avatar';
 import { useBookStore } from '@/store/useBookStore';
 import { daysBetween, formatDateCN, daysUntil, isToday } from '@/utils/date';
@@ -12,7 +12,7 @@ const themeGradients: Record<string, string> = {
 };
 
 export const HomePage: React.FC = () => {
-  const { currentBook, messages, moments, isAdmin, userInfo } = useBookStore();
+  const { currentBook, messages, moments, letters, isAdmin, userInfo } = useBookStore();
   const navigate = useNavigate();
   const [animateNumbers, setAnimateNumbers] = useState(false);
 
@@ -38,6 +38,16 @@ export const HomePage: React.FC = () => {
   const coverPhotos = moments
     .flatMap((m) => m.photos)
     .filter((p) => p);
+
+  const unlockedLetterCount = useMemo(
+    () => letters.filter((l) => l.status === 'unlocked').length,
+    [letters]
+  );
+
+  const pendingLetterCount = useMemo(
+    () => letters.filter((l) => l.status === 'sealed').length,
+    [letters]
+  );
 
   const gradientClass = themeGradients[currentBook.theme] || themeGradients.warm;
 
@@ -123,37 +133,93 @@ export const HomePage: React.FC = () => {
 
       <div className="px-4 -mt-4 relative z-20">
         <div className="bg-white rounded-2xl shadow-soft p-5">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-3">
             <div className="text-center">
-              <div className="w-10 h-10 mx-auto mb-2 bg-orange-50 rounded-xl flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-orange-500" />
+              <div className="w-9 h-9 mx-auto mb-2 bg-orange-50 rounded-xl flex items-center justify-center">
+                <MessageCircle className="w-4 h-4 text-orange-500" />
               </div>
-              <div className="text-2xl font-bold text-gray-800">
+              <div className="text-xl font-bold text-gray-800">
                 {approvedMessages.length}
               </div>
               <div className="text-xs text-gray-500">条祝福</div>
             </div>
             <div className="text-center">
-              <div className="w-10 h-10 mx-auto mb-2 bg-emerald-50 rounded-xl flex items-center justify-center">
-                <Users className="w-5 h-5 text-emerald-500" />
+              <div className="w-9 h-9 mx-auto mb-2 bg-emerald-50 rounded-xl flex items-center justify-center">
+                <Users className="w-4 h-4 text-emerald-500" />
               </div>
-              <div className="text-2xl font-bold text-gray-800">
+              <div className="text-xl font-bold text-gray-800">
                 {uniqueSenders}
               </div>
               <div className="text-xs text-gray-500">位同事</div>
             </div>
             <div className="text-center">
-              <div className="w-10 h-10 mx-auto mb-2 bg-sky-50 rounded-xl flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-sky-500" />
+              <div className="w-9 h-9 mx-auto mb-2 bg-sky-50 rounded-xl flex items-center justify-center">
+                <Calendar className="w-4 h-4 text-sky-500" />
               </div>
-              <div className="text-2xl font-bold text-gray-800">
+              <div className="text-xl font-bold text-gray-800">
                 {moments.length}
               </div>
               <div className="text-xs text-gray-500">个时刻</div>
             </div>
+            <button
+              onClick={() => navigate('/mailbox')}
+              className="text-center hover:bg-gray-50 rounded-xl transition-colors -m-1 p-1"
+            >
+              <div className="w-9 h-9 mx-auto mb-2 bg-amber-50 rounded-xl flex items-center justify-center relative">
+                <Mail className="w-4 h-4 text-amber-500" />
+                {unlockedLetterCount > 0 && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                    {unlockedLetterCount}
+                  </div>
+                )}
+              </div>
+              <div className="text-xl font-bold text-gray-800">
+                {letters.length}
+              </div>
+              <div className="text-xs text-gray-500">封信件</div>
+            </button>
           </div>
+
+          {pendingLetterCount > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">
+                  <span className="text-amber-500">🕐</span> 还有 {pendingLetterCount} 封未来信件在路上
+                </span>
+                <button
+                  onClick={() => navigate('/mailbox')}
+                  className="text-amber-500 font-medium flex items-center gap-1"
+                >
+                  查看
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {unlockedLetterCount > 0 && (
+        <div className="px-4 mt-4">
+          <button
+            onClick={() => navigate('/mailbox')}
+            className="w-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-2xl p-4 flex items-center gap-3 shadow-lg shadow-amber-200/40 animate-pulse-glow"
+          >
+            <div className="w-11 h-11 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
+              <Mail className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-white font-bold">
+                🎉 你有 {unlockedLetterCount} 封未来信件已送达！
+              </p>
+              <p className="text-white/80 text-xs mt-0.5">
+                点击查看来自未来的惊喜
+              </p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/80 flex-shrink-0" />
+          </button>
+        </div>
+      )}
 
       {coverPhotos.length > 0 && (
         <div className="px-4 mt-6">

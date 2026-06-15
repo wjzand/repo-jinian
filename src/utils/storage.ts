@@ -1,4 +1,4 @@
-import type { MemorialBook, Message, Moment, UserInfo } from '@/types';
+import type { MemorialBook, Message, Moment, UserInfo, FutureLetter } from '@/types';
 
 const STORAGE_PREFIX = 'gongshi-memorial-';
 const KEY_BOOKS = `${STORAGE_PREFIX}books`;
@@ -6,6 +6,7 @@ const KEY_USER = `${STORAGE_PREFIX}user`;
 const KEY_BOOK_PREFIX = `${STORAGE_PREFIX}book-`;
 const KEY_MESSAGES_PREFIX = `${STORAGE_PREFIX}messages-`;
 const KEY_MOMENTS_PREFIX = `${STORAGE_PREFIX}moments-`;
+const KEY_LETTERS_PREFIX = `${STORAGE_PREFIX}letters-`;
 
 function safeParse<T>(value: string | null, defaultValue: T): T {
   if (!value) return defaultValue;
@@ -37,14 +38,7 @@ export function saveBook(book: MemorialBook): void {
   }
 }
 
-export function deleteBook(id: string): void {
-  localStorage.removeItem(`${KEY_BOOK_PREFIX}${id}`);
-  localStorage.removeItem(`${KEY_MESSAGES_PREFIX}${id}`);
-  localStorage.removeItem(`${KEY_MOMENTS_PREFIX}${id}`);
-  const books = getBookList();
-  const filtered = books.filter((b) => b !== id);
-  saveBookList(filtered);
-}
+
 
 export function getMessages(bookId: string): Message[] {
   return safeParse<Message[]>(localStorage.getItem(`${KEY_MESSAGES_PREFIX}${bookId}`), []);
@@ -89,4 +83,22 @@ export function getStorageUsage(): { used: number; total: number } {
     used: total,
     total: 5 * 1024 * 1024,
   };
+}
+
+export function getLetters(bookId: string): FutureLetter[] {
+  return safeParse<FutureLetter[]>(localStorage.getItem(`${KEY_LETTERS_PREFIX}${bookId}`), []);
+}
+
+export function saveLetters(bookId: string, letters: FutureLetter[]): void {
+  localStorage.setItem(`${KEY_LETTERS_PREFIX}${bookId}`, JSON.stringify(letters));
+}
+
+export function deleteBook(id: string): void {
+  localStorage.removeItem(`${KEY_BOOK_PREFIX}${id}`);
+  localStorage.removeItem(`${KEY_MESSAGES_PREFIX}${id}`);
+  localStorage.removeItem(`${KEY_MOMENTS_PREFIX}${id}`);
+  localStorage.removeItem(`${KEY_LETTERS_PREFIX}${id}`);
+  const books = getBookList();
+  const filtered = books.filter((b) => b !== id);
+  saveBookList(filtered);
 }

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { MemorialBook, Message, Moment, UserInfo } from '@/types';
+import type { MemorialBook, Message, Moment, UserInfo, FutureLetter } from '@/types';
 import {
   getBook,
   getBookList,
@@ -9,17 +9,21 @@ import {
   saveMessages,
   getMoments,
   saveMoments,
+  getLetters,
+  saveLetters,
   getUserInfo,
   saveUserInfo,
 } from '@/utils/storage';
 import { generateId, generateAdminToken } from '@/utils/id';
 import { initSampleData } from '@/mock/sampleData';
+import { isPastDate } from '@/utils/date';
 
 interface BookState {
   books: MemorialBook[];
   currentBook: MemorialBook | null;
   messages: Message[];
   moments: Moment[];
+  letters: FutureLetter[];
   userInfo: UserInfo | null;
   isAdmin: boolean;
   loading: boolean;
@@ -40,6 +44,13 @@ interface BookState {
   updateMoment: (momentId: string, data: Partial<Moment>) => void;
   deleteMoment: (momentId: string) => void;
 
+  addLetter: (letter: Omit<FutureLetter, 'id' | 'bookId' | 'status' | 'unlockedAt' | 'createdAt'>) => void;
+  updateLetter: (letterId: string, data: Partial<FutureLetter>) => void;
+  deleteLetter: (letterId: string) => void;
+  unlockLetter: (letterId: string) => void;
+  markLetterAsRead: (letterId: string) => void;
+  checkAndUnlockLetters: () => void;
+
   setUserInfo: (info: Partial<UserInfo>) => void;
   verifyAdmin: (token: string) => boolean;
   initWithSampleData: () => void;
@@ -50,6 +61,7 @@ export const useBookStore = create<BookState>((set, get) => ({
   currentBook: null,
   messages: [],
   moments: [],
+  letters: [],
   userInfo: null,
   isAdmin: false,
   loading: true,
@@ -71,6 +83,23 @@ export const useBookStore = create<BookState>((set, get) => ({
       const moments = getMoments(id).sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
       );
+      let letters = getLetters(id).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      const now = new Date().toISOString().split('T')[0];
+      let hasUnlocked = false;
+      letters = letters.map((letter) => {
+        if (letter.status === 'sealed' && isPastDate(letter.deliveryDate, now)) {
+          hasUnlocked = true;
+          return { ...letter, status: 'unlocked' as const, unlockedAt: new Date().toISOString() };
+        }
+        return letter;
+      });
+      if (hasUnlocked) {
+        saveLetters(id, letters);
+      }
+
       const userInfo = getUserInfo();
       const isAdmin = userInfo?.lastBookId === id && book.adminToken
         ? localStorage.getItem(`admin-${id}`) === 'true'
@@ -80,6 +109,7 @@ export const useBookStore = create<BookState>((set, get) => ({
         currentBook: book,
         messages,
         moments,
+        letters,
         userInfo,
         isAdmin,
         loading: false,
@@ -116,6 +146,7 @@ export const useBookStore = create<BookState>((set, get) => ({
     saveBook(newBook);
     saveMessages(id, []);
     saveMoments(id, []);
+    saveLetters(id, []);
 
     localStorage.setItem(`admin-${id}`, 'true');
     saveUserInfo({ lastBookId: id });
@@ -126,6 +157,7 @@ export const useBookStore = create<BookState>((set, get) => ({
       currentBook: newBook,
       messages: [],
       moments: [],
+      letters: [],
       isAdmin: true,
     });
 
@@ -283,6 +315,102 @@ export const useBookStore = create<BookState>((set, get) => ({
     set({ moments: updatedMoments });
   },
 
+  addLetter: (letter) => {
+    const { currentBook, letters, userInfo } = get();
+    if (!currentBook) return;
+
+    const newLetter: FutureLetter = {
+      id: generateId('ltr'),
+      bookId: currentBook.id,
+      authorName: letter.authorName,
+      isAnonymous: letter.isAnonymous,
+      mood: letter.mood,
+      content: letter.content,
+      photo: letter.photo,
+      recipient: letter.recipient,
+      deliveryDate: letter.deliveryDate,
+      preset: letter.preset,
+      status: isPastDate(letter.deliveryDate, new Date().toISOString().split('T')[0]) ? 'unlocked' : 'sealed',
+      isPrivate: letter.isPrivate,
+      unlockedAt: isPastDate(letter.deliveryDate, new Date().toISOString().split('T')[0]) ? new Date().toISOString() : '',
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedLetters = [newLetter, ...letters];
+    saveLetters(currentBook.id, updatedLetters);
+    set({ letters: updatedLetters });
+
+    if (userInfo && !letter.isAnonymous) {
+      saveUserInfo({ name: letter.authorName });
+    }
+  },
+
+  updateLetter: (letterId, data) => {
+    const { currentBook, letters } = get();
+    if (!currentBook) return;
+
+    const updatedLetters = letters.map((l) =>
+      l.id === letterId ? { ...l, ...data } : l
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    saveLetters(currentBook.id, updatedLetters);
+    set({ letters: updatedLetters });
+  },
+
+  deleteLetter: (letterId) => {
+    const { currentBook, letters } = get();
+    if (!currentBook) return;
+
+    const updatedLetters = letters.filter((l) => l.id !== letterId);
+    saveLetters(currentBook.id, updatedLetters);
+    set({ letters: updatedLetters });
+  },
+
+  unlockLetter: (letterId) => {
+    const { currentBook, letters } = get();
+    if (!currentBook) return;
+
+    const updatedLetters = letters.map((l) =>
+      l.id === letterId ? { ...l, status: 'unlocked' as const, unlockedAt: new Date().toISOString() } : l
+    );
+
+    saveLetters(currentBook.id, updatedLetters);
+    set({ letters: updatedLetters });
+  },
+
+  markLetterAsRead: (letterId) => {
+    const { currentBook, letters } = get();
+    if (!currentBook) return;
+
+    const updatedLetters = letters.map((l) =>
+      l.id === letterId ? { ...l, status: 'read' as const } : l
+    );
+
+    saveLetters(currentBook.id, updatedLetters);
+    set({ letters: updatedLetters });
+  },
+
+  checkAndUnlockLetters: () => {
+    const { currentBook, letters } = get();
+    if (!currentBook) return;
+
+    const now = new Date().toISOString().split('T')[0];
+    let hasChanged = false;
+
+    const updatedLetters = letters.map((letter) => {
+      if (letter.status === 'sealed' && isPastDate(letter.deliveryDate, now)) {
+        hasChanged = true;
+        return { ...letter, status: 'unlocked' as const, unlockedAt: new Date().toISOString() };
+      }
+      return letter;
+    });
+
+    if (hasChanged) {
+      saveLetters(currentBook.id, updatedLetters);
+      set({ letters: updatedLetters });
+    }
+  },
+
   setUserInfo: (info) => {
     const current = getUserInfo() || { name: '', lastBookId: '' };
     const updated = { ...current, ...info };
@@ -302,10 +430,20 @@ export const useBookStore = create<BookState>((set, get) => ({
   },
 
   initWithSampleData: () => {
-    const { book, messages, moments } = initSampleData();
+    const { book, messages, moments, letters } = initSampleData();
+    const now = new Date().toISOString().split('T')[0];
+    
+    const processedLetters = letters.map((letter) => {
+      if (letter.status === 'sealed' && isPastDate(letter.deliveryDate, now)) {
+        return { ...letter, status: 'unlocked' as const, unlockedAt: new Date().toISOString() };
+      }
+      return letter;
+    });
+
     saveBook(book);
     saveMessages(book.id, messages);
     saveMoments(book.id, moments);
+    saveLetters(book.id, processedLetters);
     saveUserInfo({ lastBookId: book.id, name: '我' });
     localStorage.setItem(`admin-${book.id}`, 'true');
 
@@ -317,6 +455,9 @@ export const useBookStore = create<BookState>((set, get) => ({
       ),
       moments: moments.sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      ),
+      letters: processedLetters.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       ),
       userInfo: { name: '我', lastBookId: book.id },
       isAdmin: true,

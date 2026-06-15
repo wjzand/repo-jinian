@@ -71,3 +71,35 @@ export function getRelativeTime(dateStr: string): string {
   if (diffDays < 7) return `${diffDays}天前`;
   return formatDate(dateStr);
 }
+
+export function isPastDate(dateStr: string, compareDateStr?: string): boolean {
+  const date = new Date(dateStr);
+  const compare = compareDateStr ? new Date(compareDateStr) : new Date();
+  date.setHours(0, 0, 0, 0);
+  compare.setHours(0, 0, 0, 0);
+  return date.getTime() <= compare.getTime();
+}
+
+export function getNextBirthday(birthdayStr: string, leaveDateStr: string): string {
+  const today = new Date(leaveDateStr);
+  const birthday = new Date(birthdayStr);
+  const thisYear = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
+
+  if (thisYear.getTime() <= today.getTime()) {
+    thisYear.setFullYear(today.getFullYear() + 1);
+  }
+
+  return thisYear.toISOString().split('T')[0];
+}
+
+export function getNextAnniversary(joinDateStr: string, leaveDateStr: string): string {
+  const today = new Date(leaveDateStr);
+  const joinDate = new Date(joinDateStr);
+  const thisYear = new Date(today.getFullYear(), joinDate.getMonth(), joinDate.getDate());
+
+  if (thisYear.getTime() <= today.getTime()) {
+    thisYear.setFullYear(today.getFullYear() + 1);
+  }
+
+  return thisYear.toISOString().split('T')[0];
+}

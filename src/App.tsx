@@ -6,6 +6,8 @@ import { TimelinePage } from '@/pages/TimelinePage';
 import { FarewellPage } from '@/pages/FarewellPage';
 import { ManagePage } from '@/pages/ManagePage';
 import { CreateBookPage } from '@/pages/CreateBookPage';
+import { MailboxPage } from '@/pages/MailboxPage';
+import { WriteLetterPage } from '@/pages/WriteLetterPage';
 import { BottomNav } from '@/components/BottomNav';
 import { useBookStore } from '@/store/useBookStore';
 import type { TabType } from '@/types';
@@ -14,6 +16,7 @@ import { getUserInfo } from '@/utils/storage';
 const tabRoutes: Record<TabType, string> = {
   home: '/',
   messages: '/messages',
+  mailbox: '/mailbox',
   timeline: '/timeline',
   farewell: '/farewell',
 };
@@ -21,7 +24,7 @@ const tabRoutes: Record<TabType, string> = {
 function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentBook, loadBookList, loadBook, initWithSampleData, loading } = useBookStore();
+  const { currentBook, loadBookList, loadBook, initWithSampleData, loading, checkAndUnlockLetters } = useBookStore();
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -33,6 +36,9 @@ function MainLayout() {
 
       if (lastBookId) {
         loadBook(lastBookId);
+        setTimeout(() => {
+          checkAndUnlockLetters();
+        }, 200);
       }
 
       setTimeout(() => {
@@ -52,6 +58,7 @@ function MainLayout() {
   const getActiveTab = (): TabType => {
     const path = location.pathname;
     if (path === '/messages') return 'messages';
+    if (path === '/mailbox') return 'mailbox';
     if (path === '/timeline') return 'timeline';
     if (path === '/farewell') return 'farewell';
     return 'home';
@@ -61,7 +68,7 @@ function MainLayout() {
     navigate(tabRoutes[tab]);
   };
 
-  const showBottomNav = ['/', '/messages', '/timeline', '/farewell'].includes(location.pathname);
+  const showBottomNav = ['/', '/messages', '/mailbox', '/timeline', '/farewell'].includes(location.pathname);
 
   if (!isInitialized || (loading && !currentBook)) {
     return (
@@ -85,6 +92,8 @@ function MainLayout() {
         <Route path="/farewell" element={<FarewellPage />} />
         <Route path="/manage" element={<ManagePage />} />
         <Route path="/create" element={<CreateBookPage />} />
+        <Route path="/mailbox" element={<MailboxPage />} />
+        <Route path="/mailbox/write" element={<WriteLetterPage />} />
       </Routes>
 
       {showBottomNav && <BottomNav activeTab={getActiveTab()} onTabChange={handleTabChange} />}

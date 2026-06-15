@@ -1,18 +1,32 @@
-import React, { useState } from 'react';
-import { Download, Share2, Image, FileJson, FileCode } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Download, Share2, Image, FileJson, FileCode, Mail, Clock } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
 import { EmptyState } from '@/components/EmptyState';
 import { useBookStore } from '@/store/useBookStore';
 import { generateLongImage, downloadImage, shareImage } from '@/utils/canvas';
+import { isLetterUnlocked } from '@/types';
+import { formatDateCN } from '@/utils/date';
 
 export const FarewellPage: React.FC = () => {
-  const { currentBook, messages, moments, isAdmin } = useBookStore();
+  const { currentBook, messages, moments, letters, isAdmin } = useBookStore();
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generatedImage, setGeneratedImage] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+
+  const publicLetters = useMemo(() => {
+    return letters.filter((l) => !l.isPrivate);
+  }, [letters]);
+
+  const unlockedLetters = useMemo(() => {
+    return publicLetters.filter((l) => isLetterUnlocked(l));
+  }, [publicLetters]);
+
+  const sealedLetters = useMemo(() => {
+    return publicLetters.filter((l) => !isLetterUnlocked(l));
+  }, [publicLetters]);
 
   const handleGenerate = async () => {
     if (!currentBook) return;
@@ -25,6 +39,7 @@ export const FarewellPage: React.FC = () => {
         book: currentBook,
         messages,
         moments,
+        letters: publicLetters,
         onProgress: (p) => setProgress(p),
       });
       setGeneratedImage(image);
@@ -59,6 +74,7 @@ export const FarewellPage: React.FC = () => {
       book: currentBook,
       messages,
       moments,
+      letters: publicLetters,
       exportedAt: new Date().toISOString(),
     };
 
@@ -123,6 +139,30 @@ export const FarewellPage: React.FC = () => {
       border-bottom: 1px solid #f0f0f0;
     }
     .moment-item:last-child { border-bottom: none; }
+    .letter-card {
+      padding: 12px;
+      background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      border: 1px solid #FDBA74;
+    }
+    .letter-sealed {
+      padding: 16px;
+      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      text-align: center;
+      border: 1px dashed #F59E0B;
+    }
+    .letter-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 12px;
+      border-radius: 12px;
+      background: rgba(251, 146, 60, 0.15);
+      color: #EA580C;
+      margin-right: 8px;
+    }
   </style>
 </head>
 <body>
@@ -140,6 +180,30 @@ export const FarewellPage: React.FC = () => {
         </div>
       `).join('')}
     </div>
+    ${publicLetters.length > 0 ? `
+    <div class="section">
+      <h2>📬 未来信箱 (${publicLetters.length}封)</h2>
+      ${unlockedLetters.length > 0 ? unlockedLetters.map(l => `
+        <div class="letter-card">
+          <div class="letter-tag">来自未来的信</div>
+          <strong>${l.isAnonymous ? '匿名同事' : l.authorName}</strong>
+          <span style="font-size: 12px; color: #666; margin-left: 8px;">
+            ${formatDateCN(l.deliveryDate)} 送达
+          </span>
+          <p style="margin-top: 8px;">${l.content}</p>
+        </div>
+      `).join('') : ''}
+      ${sealedLetters.length > 0 ? `
+        <div class="letter-sealed">
+          <div style="font-size: 32px; margin-bottom: 8px;">✉️</div>
+          <strong style="color: #92400E;">还有 ${sealedLetters.length} 封信件在路上</strong>
+          <p style="font-size: 12px; color: #B45309; margin-top: 4px;">
+            它们将在未来的某个日子送达，请耐心等待
+          </p>
+        </div>
+      ` : ''}
+    </div>
+    ` : ''}
     <div class="section">
       <h2>📅 时光轴 (${moments.length}个时刻)</h2>
       ${moments.map(m => `
@@ -203,6 +267,38 @@ export const FarewellPage: React.FC = () => {
             </Button>
           )}
         </div>
+
+        {publicLetters.length > 0 && (
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 shadow-card mb-6 border border-amber-100">
+            <div className="flex items-center gap-2 mb-3">
+              <Mail className="w-5 h-5 text-amber-500" />
+              <h3 className="text-lg font-semibold text-gray-800">未来信箱</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="bg-white/70 rounded-xl p-3 text-center">
+                <div className="flex items-center justify-center gap-1 text-emerald-600 mb-1">
+                  <Mail className="w-4 h-4" />
+                  <span className="text-xs">已送达</span>
+                </div>
+                <div className="text-2xl font-bold text-gray-800">
+                  {unlockedLetters.length}
+                </div>
+              </div>
+              <div className="bg-white/70 rounded-xl p-3 text-center">
+                <div className="flex items-center justify-center gap-1 text-amber-600 mb-1">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-xs">在路上</span>
+                </div>
+                <div className="text-2xl font-bold text-gray-800">
+                  {sealedLetters.length}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 text-center">
+              已解锁信件将出现在纪念长图和导出文件中
+            </p>
+          </div>
+        )}
 
         {isAdmin && (
           <div className="bg-white rounded-2xl p-6 shadow-card">

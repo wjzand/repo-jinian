@@ -1,11 +1,13 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/helpers';
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
   title: string;
   description?: string;
   action?: React.ReactNode;
+  actionText?: string;
+  onAction?: () => void;
   className?: string;
 }
 
@@ -14,6 +16,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   title,
   description,
   action,
+  actionText,
+  onAction,
   className = '',
 }) => {
   return (
@@ -33,6 +37,14 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         <p className="text-sm text-gray-500 mb-4 max-w-xs">{description}</p>
       )}
       {action}
+      {actionText && onAction && (
+        <button
+          onClick={onAction}
+          className="px-6 py-2.5 bg-gradient-to-r from-orange-400 to-rose-400 text-white rounded-xl shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300 transition-all text-sm font-medium"
+        >
+          {actionText}
+        </button>
+      )}
     </div>
   );
 };

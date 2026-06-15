@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Filter } from 'lucide-react';
+import { Plus, Mail, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { MessageCard } from '@/components/MessageCard';
 import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
@@ -8,10 +9,11 @@ import { EmptyState } from '@/components/EmptyState';
 import { useBookStore } from '@/store/useBookStore';
 import type { MoodType } from '@/types';
 import { MOOD_OPTIONS } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/helpers';
 
 export const MessagesPage: React.FC = () => {
-  const { messages, isAdmin, userInfo, addMessage, likeMessage, thankMessage, deleteMessage } =
+  const navigate = useNavigate();
+  const { messages, letters, isAdmin, userInfo, addMessage, likeMessage, thankMessage, deleteMessage } =
     useBookStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMood, setSelectedMood] = useState<MoodType | 'all'>('all');
@@ -32,6 +34,16 @@ export const MessagesPage: React.FC = () => {
     if (selectedMood === 'all') return approvedMessages;
     return approvedMessages.filter((m) => m.mood === selectedMood);
   }, [approvedMessages, selectedMood]);
+
+  const unlockedLetterCount = useMemo(
+    () => letters.filter((l) => l.status === 'unlocked').length,
+    [letters]
+  );
+
+  const sealedLetterCount = useMemo(
+    () => letters.filter((l) => l.status === 'sealed').length,
+    [letters]
+  );
 
   const handleSubmit = () => {
     if (!newMessage.content.trim()) return;
@@ -107,6 +119,61 @@ export const MessagesPage: React.FC = () => {
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      {unlockedLetterCount > 0 && (
+        <div className="px-4 mb-4">
+          <button
+            onClick={() => navigate('/mailbox')}
+            className="w-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-2xl p-4 flex items-center gap-3 shadow-lg shadow-amber-200/50 animate-pulse-glow"
+          >
+            <div className="w-12 h-12 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
+              <Mail className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-white font-bold text-base">
+                🎉 你有 {unlockedLetterCount} 封未来信件已送达！
+              </p>
+              <p className="text-white/80 text-xs mt-0.5">
+                点击查看来自未来的惊喜
+              </p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/80 flex-shrink-0" />
+          </button>
+        </div>
+      )}
+
+      <div className="px-4 mb-4">
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate('/mailbox')}
+            className="flex-1 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/50 rounded-2xl p-3.5 flex items-center gap-3 hover:shadow-md transition-shadow"
+          >
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              📬
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium text-gray-800">未来信箱</p>
+              <p className="text-xs text-gray-500">
+                {letters.length > 0
+                  ? `${sealedLetterCount} 封在路上 · ${unlockedLetterCount} 封已送达`
+                  : '写一封跨越时间的信'}
+              </p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate('/mailbox/write')}
+            className="flex-1 bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200/50 rounded-2xl p-3.5 flex items-center gap-3 hover:shadow-md transition-shadow"
+          >
+            <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              ✉️
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium text-gray-800">写给未来的TA</p>
+              <p className="text-xs text-gray-500">设定时间，封存惊喜</p>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -281,6 +348,17 @@ export const MessagesPage: React.FC = () => {
           >
             发送祝福
           </Button>
+
+          <button
+            onClick={() => {
+              setShowAddModal(false);
+              navigate('/mailbox/write');
+            }}
+            className="w-full flex items-center justify-center gap-2 py-3 text-sm text-amber-600 hover:text-amber-700 transition-colors"
+          >
+            <Mail className="w-4 h-4" />
+            或写一封未来信件 →
+          </button>
         </div>
       </Modal>
     </div>

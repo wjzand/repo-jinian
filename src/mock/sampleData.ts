@@ -1,5 +1,6 @@
-import type { MemorialBook, Message, Moment } from '@/types';
+import type { MemorialBook, Message, Moment, FutureLetter } from '@/types';
 import { generateId, generateAdminToken } from '@/utils/id';
+import { addDays } from '@/utils/date';
 
 const bookId = 'sample-book-001';
 
@@ -187,10 +188,110 @@ export const sampleMoments: Moment[] = [
   },
 ];
 
-export function initSampleData(): { book: MemorialBook; messages: Message[]; moments: Moment[] } {
+export const sampleLetters: FutureLetter[] = [
+  {
+    id: generateId('ltr'),
+    bookId,
+    authorName: '刘思琪',
+    isAnonymous: false,
+    mood: 'bless',
+    content: '明远哥，离职快乐！第一天离开公司的感觉怎么样？是不是有点小激动又有点小失落？不管怎样，新的旅程开始啦，祝你一路顺风！我们等着你请吃饭哦～ 🍜',
+    photo: '',
+    recipient: 'colleague',
+    deliveryDate: addDays(sampleBook.leaveDate, 0),
+    preset: 'custom',
+    status: 'unlocked',
+    isPrivate: false,
+    unlockedAt: '2025-06-30T00:00:00.000Z',
+    createdAt: '2025-06-28T10:00:00.000Z',
+  },
+  {
+    id: generateId('ltr'),
+    bookId,
+    authorName: '陈宇飞',
+    isAnonymous: false,
+    mood: 'happy',
+    content: '嘿！离职第三天了，习惯了吗？有没有睡到自然醒？哈哈，记得我们的约定，每个季度至少聚一次！下次我请你喝最贵的奶茶！🧋',
+    photo: '',
+    recipient: 'colleague',
+    deliveryDate: addDays(sampleBook.leaveDate, 3),
+    preset: 'custom',
+    status: 'unlocked',
+    isPrivate: false,
+    unlockedAt: '2025-07-03T00:00:00.000Z',
+    createdAt: '2025-06-25T14:30:00.000Z',
+  },
+  {
+    id: generateId('ltr'),
+    bookId,
+    authorName: '张晓涵',
+    isAnonymous: false,
+    mood: 'bless',
+    content: '明远哥，一个月后的今天，相信你已经在新的岗位上大展拳脚了！不管在哪里，你都是最棒的产品经理。常联系！✨',
+    photo: '',
+    recipient: 'colleague',
+    deliveryDate: addDays(sampleBook.leaveDate, 30),
+    preset: 'month',
+    status: 'sealed',
+    isPrivate: false,
+    unlockedAt: '',
+    createdAt: '2025-06-10T09:00:00.000Z',
+  },
+  {
+    id: generateId('ltr'),
+    bookId,
+    authorName: '王浩然',
+    isAnonymous: false,
+    mood: 'miss',
+    content: '半年后再见！到时候我们技术部的老伙计们一起聚聚。祝你在新公司一切顺利，别忘了我们一起熬夜改bug的日子！👨‍💻',
+    photo: '',
+    recipient: 'colleague',
+    deliveryDate: addDays(sampleBook.leaveDate, 180),
+    preset: 'halfYear',
+    status: 'sealed',
+    isPrivate: false,
+    unlockedAt: '',
+    createdAt: '2025-06-09T15:30:00.000Z',
+  },
+  {
+    id: generateId('ltr'),
+    bookId,
+    authorName: '匿名同事',
+    isAnonymous: true,
+    mood: 'thanks',
+    content: '一周后你就要开始新的旅程了。虽然我们平时交流不多，但你帮我改的那份产品文档，我至今还保留着。谢谢你，好人一生平安。🙏',
+    photo: '',
+    recipient: 'colleague',
+    deliveryDate: addDays(sampleBook.leaveDate, 7),
+    preset: 'week',
+    status: 'sealed',
+    isPrivate: false,
+    unlockedAt: '',
+    createdAt: '2025-06-08T11:20:00.000Z',
+  },
+  {
+    id: generateId('ltr'),
+    bookId,
+    authorName: '李明远',
+    isAnonymous: false,
+    mood: 'cheer',
+    content: '给一年后的自己：希望你还记得在这里的美好时光，希望你已经实现了当初定下的目标。无论如何，要继续热爱生活，热爱产品！💪',
+    photo: '',
+    recipient: 'self',
+    deliveryDate: addDays(sampleBook.leaveDate, 365),
+    preset: 'year',
+    status: 'sealed',
+    isPrivate: true,
+    unlockedAt: '',
+    createdAt: '2025-06-07T20:00:00.000Z',
+  },
+];
+
+export function initSampleData(): { book: MemorialBook; messages: Message[]; moments: Moment[]; letters: FutureLetter[] } {
   return {
     book: sampleBook,
     messages: sampleMessages,
     moments: sampleMoments,
+    letters: sampleLetters,
   };
 }

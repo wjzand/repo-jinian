@@ -1,6 +1,9 @@
 export type MoodType = 'thanks' | 'sad' | 'bless' | 'happy' | 'miss' | 'cheer';
 export type MomentType = 'join' | 'project' | 'team' | 'annual' | 'birthday' | 'daily' | 'other';
 export type ThemeType = 'warm' | 'fresh' | 'simple' | 'custom';
+export type LetterTimePreset = 'week' | 'month' | 'threeMonths' | 'halfYear' | 'year' | 'birthday' | 'anniversary' | 'custom';
+export type LetterStatus = 'sealed' | 'unlocked' | 'read';
+export type LetterRecipient = 'colleague' | 'self';
 
 export interface MemorialBook {
   id: string;
@@ -51,7 +54,8 @@ export interface UserInfo {
   lastBookId: string;
 }
 
-export type TabType = 'home' | 'messages' | 'timeline' | 'farewell';
+export type TabType = 'home' | 'messages' | 'timeline' | 'farewell' | 'mailbox';
+export type MailboxTabType = 'delivered' | 'pending';
 
 export const MOOD_OPTIONS: { value: MoodType; label: string; emoji: string; color: string }[] = [
   { value: 'thanks', label: '感谢', emoji: '🙏', color: '#FF9A52' },
@@ -78,6 +82,23 @@ export const THEME_OPTIONS: { value: ThemeType; label: string; gradient: string 
   { value: 'simple', label: '简约白', gradient: 'from-gray-100 to-gray-200' },
 ];
 
+export interface FutureLetter {
+  id: string;
+  bookId: string;
+  authorName: string;
+  isAnonymous: boolean;
+  mood: MoodType;
+  content: string;
+  photo: string;
+  recipient: LetterRecipient;
+  deliveryDate: string;
+  preset: LetterTimePreset;
+  status: LetterStatus;
+  isPrivate: boolean;
+  unlockedAt: string;
+  createdAt: string;
+}
+
 export const CARD_COLORS = [
   'bg-orange-50',
   'bg-rose-50',
@@ -88,3 +109,40 @@ export const CARD_COLORS = [
   'bg-pink-50',
   'bg-teal-50',
 ];
+
+export const LETTER_TIME_PRESETS: { value: LetterTimePreset; label: string; days: number; emoji: string }[] = [
+  { value: 'week', label: '离职后一周', days: 7, emoji: '📅' },
+  { value: 'month', label: '离职后一个月', days: 30, emoji: '🌙' },
+  { value: 'threeMonths', label: '离职后三个月', days: 90, emoji: '🌸' },
+  { value: 'halfYear', label: '离职后半年', days: 180, emoji: '🍃' },
+  { value: 'year', label: '离职后一年', days: 365, emoji: '🎄' },
+  { value: 'birthday', label: 'TA的生日', days: -1, emoji: '🎂' },
+  { value: 'anniversary', label: '入职纪念日', days: -1, emoji: '🎊' },
+  { value: 'custom', label: '自定义日期', days: -1, emoji: '✨' },
+];
+
+export type WriteMode = 'message' | 'letter';
+
+export const getMoodInfo = (mood: MoodType) => {
+  return MOOD_OPTIONS.find(m => m.value === mood) || MOOD_OPTIONS[0];
+};
+
+export const getLetterPresetInfo = (preset: LetterTimePreset) => {
+  return LETTER_TIME_PRESETS.find(p => p.value === preset) || LETTER_TIME_PRESETS[0];
+};
+
+export const getLetterStatusInfo = (status: LetterStatus) => {
+  const statusMap = {
+    sealed: { label: '封存中', color: '#94A3B8', icon: '🔒' },
+    unlocked: { label: '已送达', color: '#22C55E', icon: '📬' },
+    read: { label: '已阅读', color: '#64748B', icon: '✉️' },
+  };
+  return statusMap[status];
+};
+
+export const isLetterUnlocked = (letter: FutureLetter, today: Date = new Date()) => {
+  const deliveryDate = new Date(letter.deliveryDate);
+  deliveryDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return today >= deliveryDate;
+};

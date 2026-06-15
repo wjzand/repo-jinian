@@ -1,12 +1,13 @@
-import type { MemorialBook, Message, Moment } from '@/types';
+import type { MemorialBook, Message, Moment, FutureLetter } from '@/types';
 import { formatDateCN, daysBetween } from './date';
 import { loadImage, drawRoundedRect, wrapText } from './image';
-import { MOOD_OPTIONS, MOMENT_TYPE_OPTIONS } from '@/types';
+import { MOOD_OPTIONS, MOMENT_TYPE_OPTIONS, isLetterUnlocked } from '@/types';
 
 interface GenerateLongImageOptions {
   book: MemorialBook;
   messages: Message[];
   moments: Moment[];
+  letters?: FutureLetter[];
   onProgress?: (progress: number) => void;
 }
 

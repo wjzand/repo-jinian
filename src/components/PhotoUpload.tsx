@@ -8,6 +8,7 @@ interface PhotoUploadProps {
   onRemove?: () => void;
   maxSize?: number;
   quality?: number;
+  placeholder?: string;
   className?: string;
 }
 
@@ -17,6 +18,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
   onRemove,
   maxSize = 800,
   quality = 0.7,
+  placeholder = '点击上传照片',
   className = '',
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -90,7 +92,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
             <Camera className="w-5 h-5 text-gray-400" />
             <ImageIcon className="w-5 h-5 text-gray-400" />
           </div>
-          <span className="text-sm text-gray-500">点击上传照片</span>
+          <span className="text-sm text-gray-500">{placeholder}</span>
         </>
       )}
     </button>
